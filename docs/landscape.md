@@ -34,6 +34,22 @@ None of these tries to make the documents shorter or less repetitive. They focus
 
 The [Spec Kit extension catalog](https://github.com/github/spec-kit/blob/main/docs/community/extensions.md) also lists changelog, ADR, archive, and reconcile/refine extensions. We saw only their one-line catalog descriptions.
 
+## Architecture diagrams
+
+Checked against both repos' `main` on 2026-09-30.
+
+Neither tool draws an architecture diagram by default. Spec Kit's `plan-template.md` shows structure only as a directory tree ("Project Structure"). OpenSpec's `design.md` template has four sections (Context, Goals/Non-Goals, Decisions, Risks/Trade-offs) and no diagram section.
+
+| Source | What it draws | Limit |
+|---|---|---|
+| [Data Model Diagram](https://github.com/benizzio/spec-kit-data-model-diagram) (Spec Kit extension) | Mermaid ER diagram made from `data-model.md` | Data model only |
+| [ASCII Diagram Renderer](https://github.com/MRZHUH/spec-kit-ascii-diagram) (Spec Kit extension) | Text diagrams (state machine, architecture, flow, coverage map) of what spec, plan and tasks already say | One feature at a time |
+| [Spec Diagram](https://github.com/Quratulain-bilal/spec-kit-diagram-) (Spec Kit extension) | Mermaid diagrams of workflow state and task dependencies | Shows the process, not the system |
+| OpenSpec `/opsx:explore` | ASCII diagrams in the conversation | Lost unless someone writes them into a file |
+| OpenSpec `config.yaml` rules | Can require diagrams in an artifact; the docs' example is `design: Include sequence diagrams for complex flows` | Off unless you add the rule |
+
+None of them describes the whole product. OpenSpec's living specs (`openspec/specs/`) record behavior, not structure, and Spec Kit keeps one spec per feature. None of them draws a change as a before/after of the system's structure, and nothing updates a diagram when a change is merged.
+
 ## Criticism of the approach
 
 - Böckeler, [martinfowler.com](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html): "I'd rather review code than all these markdown files." The process doesn't scale down to small problems.
@@ -49,16 +65,69 @@ No tool does these, especially not together, and not in a way that works with an
 2. **Cap document length** so each one can be skimmed.
 3. **One short summary per change for the reviewer**, linked to the decisions that drove it.
 4. **Keep Superpowers' development habits**: test-first, subagents, code review.
+5. **Architecture diagrams, for the product and for each change.** One product diagram that is updated whenever a change merges, and one diagram per change that shows only what it adds, changes or removes compared with the product diagram.
 
 "Shorter plans" alone is no longer a differentiator now that Superpowers PR #2333 has merged.
 
+## OpenSpec in more depth
+
+**How Lunch would plug in.** OpenSpec's official extension point is the custom schema ([docs/customization.md](https://github.com/Fission-AI/OpenSpec/blob/main/docs/customization.md)): a `schema.yaml` file plus templates in `openspec/schemas/<name>/`, created with `openspec schema init` or `fork`.
+- The schema sets which documents a change produces, what each one depends on, and the instructions for writing it.
+- `openspec/config.yaml` adds project context and rules for each document.
+- Two recent additions help:
+  - `skip_specs` (v1.7) lets a change skip specs when it doesn't alter behavior.
+  - `openspec show --diff` (v1.11) prints all of a change's spec edits as one diff.
+
+A `lunch` schema can therefore drop `design.md`, add a `review.md` for the reviewer, and set a length rule for each document, all without changing OpenSpec itself.
+
+**Limits.**
+- Lengths can only be suggested, not enforced:
+  - The validator doesn't read custom schemas ([#829](https://github.com/Fission-AI/OpenSpec/issues/829)).
+  - The 500-character requirement limit is only an info message ([#1976](https://github.com/Fission-AI/OpenSpec/issues/1976)).
+- There are no gates that block a step ([#1142](https://github.com/Fission-AI/OpenSpec/issues/1142)).
+- There's no schema registry ([#650](https://github.com/Fission-AI/OpenSpec/issues/650); a maintainer called it "on the roadmap, lower priority"). Schemas are shared by copying a folder.
+
+**Ecosystem.** Every existing OpenSpec + Superpowers combination produces *more* documents than OpenSpec alone:
+- The community [`superpowers-bridge` schema](https://github.com/JiangWay/openspec-schemas) (~225★) grows each change to 8 documents.
+- [Comet](https://github.com/rpamis/comet) adds Superpowers design and plan files to OpenSpec's own. When it opens a PR it prints a short summary, but it doesn't save one for reviewers.
+
+Other small projects:
+- the [`anvil` schema](https://github.com/Fission-AI/OpenSpec/blob/main/docs/customization.md), which adds an adversarial review step;
+- openspec-mcp;
+- two VS Code viewers.
+
+None of them writes a short summary for the reviewer. The closest prior work is a user's `openspec-refine` gist, posted in [#783](https://github.com/Fission-AI/OpenSpec/issues/783), which checks a change's documents for contradictions and duplication.
+
+**Verbosity threads.**
+- [#783](https://github.com/Fission-AI/OpenSpec/issues/783): decisions end up in the design doc but not in the specs, and the proposal contradicts the design. Still open.
+- [Discussion #1152](https://github.com/Fission-AI/OpenSpec/discussions/1152): a proposed "review packet" for AI-written PRs. No replies.
+- [Discussion #1159](https://github.com/Fission-AI/OpenSpec/discussions/1159): one comparison against plain Claude Code found OpenSpec produced 50% more code and cost 3× the API spend.
+- The maintainers' [reviewing-changes doc](https://github.com/Fission-AI/OpenSpec/blob/main/docs/reviewing-changes.md) sets a "two-minute review" goal. There's no roadmap item on verbosity.
+
+**Momentum** (from the GitHub API, 2026-09-30):
+
+| | OpenSpec | Spec Kit |
+|---|---|---|
+| Stars | ~71k | ~140k |
+| Contributors | ~138 | ~309 |
+| Releases since July 1 | 11 (about weekly) | 51 (almost daily) |
+| Community add-ons | 5 schemas | ~176 extensions |
+
+Spec Kit is about twice the size and has a much larger add-on ecosystem.
+
 ## Direction
 
-- Build on the existing bridge setup, alongside the lean preset and PR #2333, instead of starting from scratch.
-- Make gaps 1–3 Lunch's own contribution.
+- **Base Lunch on OpenSpec.** Its delta specs are already the smallest unit a reviewer can read, and a custom schema can set exactly which documents a change produces. Spec Kit wins only on reach.
+  - Trade-off: Bellhop runs on Spec Kit with the bridge, so choosing OpenSpec means either moving Bellhop over or running both workflows for a while.
+- Ship Lunch as:
+  - a `lunch` OpenSpec schema;
+  - skills that bring in Superpowers' development habits;
+  - a CI check that enforces document lengths, which OpenSpec itself won't.
+- Make gaps 1–3 and 5 Lunch's own contribution.
+- For gap 5, update the product diagram at the same step where OpenSpec's archive merges spec deltas into the living specs. Show the per-change diagram as a delta, marking what the change adds, changes and removes.
 - Reuse or credit:
   - OpenSpec's added / modified / removed delta format;
   - cc-spex's `REVIEWERS.md` layout;
   - Kiro's "what must not change" section;
   - Marmelab's rule: no code in specs.
-- Before building, try SpecKit Companion hands-on. If it holds up outside VS Code, Lunch could be a Spec Kit extension rather than a separate product.
+- Before committing to OpenSpec, try SpecKit Companion hands-on. It is the strongest reason to stay on Spec Kit.
