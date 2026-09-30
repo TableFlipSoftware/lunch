@@ -117,6 +117,8 @@ Spec Kit is about twice the size and has a much larger add-on ecosystem.
 
 ## Direction
 
+> **Superseded 2026-09-30 by [flow.md](flow.md).** Lunch no longer constrains upstream document length or needs a custom schema; it adds a human-facing digest layer instead. Kept below for the reasoning.
+
 - **Base Lunch on OpenSpec.** Its delta specs are already the smallest unit a reviewer can read, and a custom schema can set exactly which documents a change produces. Spec Kit wins only on reach.
   - Trade-off: Bellhop runs on Spec Kit with the bridge, so choosing OpenSpec means either moving Bellhop over or running both workflows for a while.
 - Ship Lunch as:
