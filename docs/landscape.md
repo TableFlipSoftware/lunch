@@ -131,3 +131,12 @@ Spec Kit is about twice the size and has a much larger add-on ecosystem.
   - Kiro's "what must not change" section;
   - Marmelab's rule: no code in specs.
 - Before committing to OpenSpec, try SpecKit Companion hands-on. It is the strongest reason to stay on Spec Kit.
+
+## Decision point: mapping to Azure DevOps
+
+Lunch's unit of work is a change, but ADO tracks Features, User Stories and Tasks. Tasks shouldn't become work items: they are implementation steps, change too often, and would duplicate the tasks document (gap 1).
+
+- **Decide:** what a Lunch change corresponds to in ADO.
+  - **Change = User Story.** The Feature is broken into stories (or the nearest equivalent, such as PBIs on a Scrum process), and each story gets one change. The change's tasks stay in its own document and never appear in ADO.
+  - **Change = Feature.** A larger change is decomposed into stories, each becoming a work item and delivered as its own PR. The tasks document is per story.
+- **Open:** whether the work item ID goes in the change's name or only in the PR, and whether Lunch creates stories itself or only links to existing ones.
